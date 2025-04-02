@@ -33,12 +33,12 @@ async def start(message):
 @bot.message_handler(func=lambda message: True)
 async def handle_all_messages(message):
     # You'll need to implement or import your check_full_name_and_ban function
-    await check_full_name_and_ban(message)
+    await check_full_name_and_ban(message,bot)
 
 # Run the bot with polling
-# if __name__ == "__main__":
-#     logger.info("Starting bot with polling...")
-#     asyncio.run(bot.polling())
+if __name__ == "__main__":
+    logger.info("Starting bot with polling...")
+    asyncio.run(bot.polling())
 
 # HTTP handler for Vercel
 class handler(BaseHTTPRequestHandler):
