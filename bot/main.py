@@ -6,7 +6,6 @@ from pathlib import Path
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 from dotenv import load_dotenv
-from http.server import BaseHTTPRequestHandler
 from bot.handler.ban_handler import check_full_name_and_ban, check_user_on_join
 from config import RESTRICTED_NAMES, ADMIN_IDS
 
