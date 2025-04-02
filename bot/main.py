@@ -1,17 +1,16 @@
 import os
+import asyncio
 import logging
 import json
+from telebot.async_telebot import AsyncTeleBot
+from telebot import types
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from http.server import BaseHTTPRequestHandler
 from bot.handler.ban_handler import check_full_name_and_ban
-from fastapi import FastAPI, Request
-from starlette.responses import JSONResponse
-from vercel_fastapi import VercelFastAPI  # ✅ Import Vercel adapter
 
 # Logging setup
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("bot.main")
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 logger.info("Bot is starting...")
 
@@ -22,29 +21,42 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables")
 
-# Create bot application (async)
-application = Application.builder().token(TOKEN).build()
+# Create bot instance
+bot = AsyncTeleBot(TOKEN)
 
-# ✅ Wrap FastAPI with VercelFastAPI
-app = FastAPI()
-app = VercelFastAPI(app)  # ✅ Fix for Vercel deployment
+# Start command handler
+@bot.message_handler(commands=['start'])
+async def start(message):
+    await bot.reply_to(message, "Hello! I am a group manager bot.")
 
-# Command: /start
-async def start(update: Update, context):
-    await update.message.reply_text("Hello! I am a group manager bot.")
+# Message handler
+@bot.message_handler(func=lambda message: True)
+async def handle_all_messages(message):
+    # You'll need to implement or import your check_full_name_and_ban function
+    await check_full_name_and_ban(message)
 
-# Handlers
-application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, check_full_name_and_ban))
-application.add_handler(CommandHandler("start", start))
+# Run the bot with polling
+# if __name__ == "__main__":
+#     logger.info("Starting bot with polling...")
+#     asyncio.run(bot.polling())
 
-@app.post("/api/webhook")
-async def telegram_webhook(request: Request):
-    """Handles incoming Telegram webhook updates."""
-    try:
-        update_dict = await request.json()
-        update = Update.de_json(update_dict, application.bot)
-        await application.process_update(update)
-        return JSONResponse(content={"status": "ok"})
-    except Exception as e:
-        logger.error(f"Error processing update: {e}")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+# HTTP handler for Vercel
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        update_dict = json.loads(post_data.decode('utf-8'))
+
+        asyncio.run(self.process_update(update_dict))
+
+        self.send_response(200)
+        self.end_headers()
+
+    async def process_update(self, update_dict):
+        update = types.Update.de_json(update_dict)
+        await bot.process_new_updates([update])
+
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write('Hello, BOT is running!'.encode('utf-8'))
