@@ -118,22 +118,18 @@ async def list_restricted(message: types.Message):
         f"{i+1}. {name}" for i, name in enumerate(RESTRICTED_NAMES)
     )
     await bot.reply_to(message, response)
-    
 
-@bot.message_handler(commands=['list_restricted'])
-async def list_restricted(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS:
-        await bot.reply_to(message, "❌ You are not authorized to use this command.")
-        return
-    
-    if not RESTRICTED_NAMES:
-        await bot.reply_to(message, "No restricted names currently set.")
-        return
-        
-    response = "🔒 Restricted Names:\n" + "\n".join(
-        f"{i+1}. {name}" for i, name in enumerate(RESTRICTED_NAMES)
+# Start command handler
+@bot.message_handler(commands=['start'])
+async def start(message):
+    help_text = (
+        "Hello! I am a group manager bot.\n\n"
+        "Admin commands:\n"
+        "/add_restricted [name] - Add a restricted name\n"
+        "/list_restricted - Show current restricted names"
+        "/remove_restricted - remove current restricted names"
     )
-    await bot.reply_to(message, response)
+    await bot.reply_to(message, help_text)
 
 # Message handler
 @bot.message_handler(func=lambda message: True)
