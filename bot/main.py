@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
 import os
-from telegram.ext import Application
-from bot.handler.ban_handler import check_full_name_and_ban
-from telegram.ext import MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from bot.handlers.ban_handler import check_full_name_and_ban
 from http.server import BaseHTTPRequestHandler
 import json
 import asyncio
@@ -23,10 +22,14 @@ def main():
         MessageHandler(filters.ALL & ~filters.COMMAND, check_full_name_and_ban)
     )
     
-# Command to start the bot
-@bot.message_handler(commands=['start'])
-async def start(message: types.Message):
-    await bot.reply_to(message, "Hello! i am group manager bot.")
+    # Add command handler
+    application.add_handler(CommandHandler('start', start))
+    
+    # Start the bot
+    application.run_polling()
+
+async def start(update, context):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! I am group manager bot.")
 
 # HTTP handler for Vercel
 class handler(BaseHTTPRequestHandler):
