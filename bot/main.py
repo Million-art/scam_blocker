@@ -97,7 +97,7 @@ class handler(BaseHTTPRequestHandler):
         update_dict = json.loads(post_data.decode('utf-8'))
 
         # Schedule async processing
-        asyncio.run(self.process_update(update_dict))
+        asyncio.create_task(self.process_update(update_dict))
 
         self.send_response(200)
         self.end_headers()
