@@ -29,11 +29,22 @@ bot = AsyncTeleBot(TOKEN)
 async def start(message):
     await bot.reply_to(message, "Hello! I am a group manager bot.")
 
+# Handle new members joining
+@bot.message_handler(content_types=['new_chat_members'])
+async def handle_new_members(message):
+    for user in message.new_chat_members:
+        fake_message = types.Message(
+            message_id=message.message_id, 
+            from_user=user, 
+            chat=message.chat, 
+            date=message.date
+        )
+        await check_full_name_and_ban(fake_message, bot)
+
 # Message handler
 @bot.message_handler(func=lambda message: True)
 async def handle_all_messages(message):
-    # You'll need to implement or import your check_full_name_and_ban function
-    await check_full_name_and_ban(message,bot)
+    await check_full_name_and_ban(message, bot)
 
 # Run the bot with polling
 if __name__ == "__main__":
