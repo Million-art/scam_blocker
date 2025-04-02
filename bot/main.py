@@ -2,11 +2,11 @@ import os
 import asyncio
 import logging
 import json
+import re
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 from dotenv import load_dotenv
 from http.server import BaseHTTPRequestHandler
-from bot.handler.ban_handler import check_full_name_and_ban
 
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
@@ -24,27 +24,56 @@ if not TOKEN:
 # Create bot instance
 bot = AsyncTeleBot(TOKEN)
 
-# Start command handler
-@bot.message_handler(commands=['start'])
-async def start(message):
-    await bot.reply_to(message, "Hello! I am a group manager bot.")
+# Function to check if a user's name matches the group name and ban them
+async def check_user_on_join(user: types.User, chat: types.Chat):
+    if not chat or not user:
+        return
+    
+    # Get the group name (remove special characters)
+    group_name = re.sub(r'[^\w\s]', '', chat.title).strip().lower() if chat.title else ""
+
+    # Get user's name parts
+    name_parts = [
+        user.first_name or '',
+        user.last_name or '',
+        user.username or ''
+    ]
+    full_name = " ".join(name_parts).strip().lower()
+
+    # Check if user's name matches group name
+    if group_name and (
+        full_name == group_name or
+        group_name in full_name or
+        "".join(word[0] for word in group_name.split()) in full_name
+    ):
+        try:
+            # Ban the user
+            await bot.ban_chat_member(chat.id, user.id, revoke_messages=True)
+
+            # Notify the group
+            await bot.send_message(
+                chat.id,
+                f"🚨 User {user.first_name} was banned for violating group naming policies."
+            )
+
+        except Exception as e:
+            logger.error(f"Error banning user {user.id}: {e}")
 
 # Handle new members joining
 @bot.message_handler(content_types=['new_chat_members'])
 async def handle_new_members(message):
     for user in message.new_chat_members:
-        fake_message = types.Message(
-            message_id=message.message_id, 
-            from_user=user, 
-            chat=message.chat, 
-            date=message.date
-        )
-        await check_full_name_and_ban(fake_message, bot)
+        await check_user_on_join(user, message.chat)
 
-# Message handler
+# Start command handler
+@bot.message_handler(commands=['start'])
+async def start(message):
+    await bot.reply_to(message, "Hello! I am a group manager bot.")
+
+# Handle messages (for normal messages)
 @bot.message_handler(func=lambda message: True)
 async def handle_all_messages(message):
-    await check_full_name_and_ban(message, bot)
+    await check_user_on_join(message.from_user, message.chat)
 
 # Run the bot with polling
 if __name__ == "__main__":
