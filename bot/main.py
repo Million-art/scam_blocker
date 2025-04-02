@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 from telegram.ext import Application
-from handler.ban_handler import check_full_name_and_ban
+from bot.handler.ban_handler import check_full_name_and_ban
 from telegram.ext import MessageHandler, filters
 from http.server import BaseHTTPRequestHandler
 import json
