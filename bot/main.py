@@ -65,7 +65,6 @@ async def add_restricted_name(message):
     await bot.reply_to(message, f"Restricted name '{new_name}' added successfully.")
 
 # Message handler
-# Message handler
 @bot.message_handler(func=lambda message: True)
 async def handle_all_messages(message: types.Message):
     logger.debug(f"Received message from user {message.from_user.id}: {message.text}")
@@ -91,8 +90,6 @@ async def on_user_join(update: types.ChatMemberUpdated):
     logger.debug(f"Received new user join update: {update}")
     if update.new_chat_member and update.new_chat_member.status == "member":
         await check_user_on_join(update.new_chat_member.user, update.chat, bot)
-
-# HTTP handler for Vercel
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
@@ -100,7 +97,7 @@ class handler(BaseHTTPRequestHandler):
         update_dict = json.loads(post_data.decode('utf-8'))
 
         # Schedule async processing
-        asyncio.create_task(self.process_update(update_dict))
+        asyncio.run(self.process_update(update_dict))
 
         self.send_response(200)
         self.end_headers()
@@ -114,8 +111,3 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'Hello, BOT is running!')
-
-# Start bot in polling mode if running locally
-if __name__ == "__main__":
-    logger.info("Starting bot with polling...")
-    asyncio.run(bot.polling())
