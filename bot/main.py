@@ -18,6 +18,14 @@ if not token:
 # Create the Application
 application = Application.builder().token(token).build()
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Define the start function
+async def start(update, context):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! I am group manager bot.")
+
 # Add message handler
 application.add_handler(
     MessageHandler(filters.ALL & ~filters.COMMAND, check_full_name_and_ban)
@@ -25,10 +33,6 @@ application.add_handler(
 
 # Add command handler
 application.add_handler(CommandHandler('start', start))
-
- 
-async def start(update, context):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! I am group manager bot.")
 
 # HTTP handler for incoming webhook requests
 class handler(BaseHTTPRequestHandler):
