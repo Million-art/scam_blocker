@@ -1,12 +1,17 @@
 import os
 import asyncio
 import logging
-from dotenv import load_dotenv
+import json
 from telebot.async_telebot import AsyncTeleBot
+from telebot import types
+from dotenv import load_dotenv
+from http.server import BaseHTTPRequestHandler
+from bot.handler.ban_handler import check_full_name_and_ban, check_user_on_join
 
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 logger.info("Bot is starting...")
 
 # Load environment variables
@@ -19,15 +24,45 @@ if not TOKEN:
 # Create bot instance
 bot = AsyncTeleBot(TOKEN)
 
-# Only start command handler remains
+# Start command handler
 @bot.message_handler(commands=['start'])
 async def start(message):
-    await bot.reply_to(message, "Hello! I am a simple bot that only responds to /start commands.")
+    await bot.reply_to(message, "Hello! I am a group manager bot.")
 
-# For local testing with polling
-async def run_polling():
-    logger.info("Starting bot with polling...")
-    await bot.polling()
+# Message handler
+@bot.message_handler(func=lambda message: True)
+async def handle_all_messages(message):
+    await check_full_name_and_ban(message, bot)
 
+# New user join handler
+@bot.chat_member_handler()
+async def on_user_join(update: types.ChatMemberUpdated):
+    if update.new_chat_member and update.new_chat_member.status == "member":
+        await check_user_on_join(update.new_chat_member.user, update.chat, bot)
+
+# HTTP handler for Vercel
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        update_dict = json.loads(post_data.decode('utf-8'))
+
+        # Schedule async processing
+        asyncio.create_task(self.process_update(update_dict))
+
+        self.send_response(200)
+        self.end_headers()
+
+    async def process_update(self, update_dict):
+        update = types.Update.de_json(update_dict)
+        await bot.process_new_updates([update])
+
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'Hello, BOT is running!')
+
+# Start bot in polling mode if running locally
 if __name__ == "__main__":
-    asyncio.run(run_polling())
+    logger.info("Starting bot with polling...")
+    asyncio.run(bot.polling())
