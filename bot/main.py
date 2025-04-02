@@ -126,7 +126,7 @@ async def start(message):
         "Hello! I am a group manager bot.\n\n"
         "Admin commands:\n"
         "/add_restricted [name] - Add a restricted name\n"
-        "/list_restricted - Show current restricted names"
+        "/list_restricted - Show current restricted names\n"
         "/remove_restricted - remove current restricted names"
     )
     await bot.reply_to(message, help_text)
