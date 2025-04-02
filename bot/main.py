@@ -90,24 +90,25 @@ async def on_user_join(update: types.ChatMemberUpdated):
     logger.debug(f"Received new user join update: {update}")
     if update.new_chat_member and update.new_chat_member.status == "member":
         await check_user_on_join(update.new_chat_member.user, update.chat, bot)
+
+# HTTP handler for Vercel
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         update_dict = json.loads(post_data.decode('utf-8'))
 
-        # Schedule async processing
-        asyncio.create_task(self.process_update(update_dict))
+        asyncio.run(self.process_update(update_dict))
 
         self.send_response(200)
         self.end_headers()
 
     async def process_update(self, update_dict):
-        logger.debug(f"Processing update: {update_dict}")
         update = types.Update.de_json(update_dict)
         await bot.process_new_updates([update])
 
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b'Hello, BOT is running!')
+        self.wfile.write('Hello, BOT is running!'.encode('utf-8'))
+ 
