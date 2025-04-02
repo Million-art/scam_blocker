@@ -7,10 +7,11 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from bot.handler.ban_handler import check_full_name_and_ban
 from fastapi import FastAPI, Request
 from starlette.responses import JSONResponse
+from mangum import Mangum  # Serverless wrapper for FastAPI
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bot.main")
 
 logger.info("Bot is starting...")
 
@@ -24,7 +25,7 @@ if not TOKEN:
 # Create bot application (async)
 application = Application.builder().token(TOKEN).build()
 
-# FastAPI app for handling webhooks
+# FastAPI app
 app = FastAPI()
 
 # Command: /start
@@ -47,7 +48,5 @@ async def telegram_webhook(request: Request):
         logger.error(f"Error processing update: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-# Vercel's required handler
-def handler(request):
-    """Entry point for Vercel"""
-    return app(request)
+
+handler = Mangum(app)
