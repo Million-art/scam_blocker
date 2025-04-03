@@ -6,19 +6,18 @@ from pathlib import Path
 from bot.main import bot
 from telebot import types
 
-# Configure paths for production vs development
 def get_config_path():
     """Determine the correct config path based on environment"""
-    if os.getenv('VERCEL'):
-        return Path('/tmp/config.json')  # Vercel uses /tmp for writable storage
-    elif os.getenv('DOCKER'):
+    if os.getenv('DOCKER'):
         return Path('/app/config.json')  # Docker convention
+    elif os.getenv('VERCEL'):
+        return Path('/vercel/path/to/config.json')  # Adjust this path if /tmp is not available
     else:
         return Path(__file__).parent.parent / 'config.json'  # Local development
 
 CONFIG_PATH = get_config_path()
 
-async def initialize_config():
+def initialize_config():
     """Ensure config file exists with proper structure"""
     if not CONFIG_PATH.exists():
         try:
@@ -35,7 +34,7 @@ async def initialize_config():
 async def process_update(update_dict):
     try:
         # Ensure config exists before processing
-        await initialize_config()
+        initialize_config()
         
         # Debug: Print received update
         print(f"Received update: {json.dumps(update_dict, indent=2)}")
@@ -74,12 +73,11 @@ class Handler(BaseHTTPRequestHandler):
             # Debug info
             print(f"Using config from: {CONFIG_PATH}")
             print(f"Config exists: {CONFIG_PATH.exists()}")
+            print(f"Config writable: {os.access(str(CONFIG_PATH.parent), os.W_OK)}")
             
             # Run async function in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            loop = asyncio.get_event_loop()
             success = loop.run_until_complete(process_update(update_dict))
-            loop.close()
             
             if success:
                 self._set_headers(200)
