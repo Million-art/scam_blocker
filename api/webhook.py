@@ -18,19 +18,35 @@ def get_config_path():
 
 CONFIG_PATH = get_config_path()
 
+async def initialize_config():
+    """Ensure config file exists with proper structure"""
+    if not CONFIG_PATH.exists():
+        try:
+            with open(CONFIG_PATH, 'w') as f:
+                json.dump({
+                    "restricted_names": [],
+                    "admin_ids": []
+                }, f, indent=4)
+            print(f"Created new config at {CONFIG_PATH}")
+        except Exception as e:
+            print(f"Failed to create config: {e}")
+            raise
+
 async def process_update(update_dict):
     try:
+        # Ensure config exists before processing
+        await initialize_config()
+        
         # Debug: Print received update
         print(f"Received update: {json.dumps(update_dict, indent=2)}")
         
         update = types.Update.de_json(update_dict)
         if update:
-            # Reload config fresh for each request in production
-            if os.getenv('PRODUCTION'):
-                with open(CONFIG_PATH, 'r') as f:
-                    config = json.load(f)
-                    bot.restricted_names = config.get('restricted_names', [])
-                    bot.admin_ids = config.get('admin_ids', [])
+            # Reload fresh config for each request in production
+            with open(CONFIG_PATH, 'r') as f:
+                config = json.load(f)
+                bot.restricted_names = config.get('restricted_names', [])
+                bot.admin_ids = config.get('admin_ids', [])
             
             await bot.process_new_updates([update])
         return True
@@ -55,7 +71,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             update_dict = json.loads(post_data.decode('utf-8'))
             
-            # Debug: Print config path being used
+            # Debug info
             print(f"Using config from: {CONFIG_PATH}")
             print(f"Config exists: {CONFIG_PATH.exists()}")
             
@@ -79,13 +95,21 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def do_GET(self):
-        self._set_headers(200)
-        self.wfile.write(json.dumps({
-            "status": "ready",
-            "service": "Telegram Bot Webhook",
-            "config_path": str(CONFIG_PATH),
-            "config_exists": CONFIG_PATH.exists(),
-            "environment": "production" if os.getenv('PRODUCTION') else "development"
-        }).encode())
+        try:
+            config_exists = CONFIG_PATH.exists()
+            config_status = "exists" if config_exists else "missing"
+            
+            self._set_headers(200)
+            self.wfile.write(json.dumps({
+                "status": "ready",
+                "service": "Telegram Bot Webhook",
+                "config_path": str(CONFIG_PATH),
+                "config_status": config_status,
+                "environment": "production" if os.getenv('VERCEL') else "development",
+                "writable": os.access(str(CONFIG_PATH.parent), os.W_OK)
+            }).encode())
+        except Exception as e:
+            self._set_headers(500)
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
 handler = Handler
