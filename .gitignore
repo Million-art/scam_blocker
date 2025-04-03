@@ -26,7 +26,7 @@ MANIFEST
 # Virtual environment
 venv/
 .env/
-
+firebase-service-account
 # IDE
 .vscode/
 .idea/
