@@ -1,5 +1,6 @@
 from telebot import types
 import re
+import asyncio
 
 async def check_full_name_and_ban(message: types.Message, bot, db):
     chat = message.chat
@@ -41,10 +42,17 @@ async def check_full_name_and_ban(message: types.Message, bot, db):
             )
 
             # Notify the group
-            await bot.send_message(
+            ban_message = await bot.send_message(
                 chat_id=chat.id,
                 text="🚨 Security Alert: A user was banned for violating group naming policies. Their messages have been purged."
             )
+
+            # Wait for 5 seconds before deleting the ban message
+            await asyncio.sleep(5)
+            try:
+                await bot.delete_message(chat.id, ban_message.message_id)
+            except Exception as delete_error:
+                print(f"Could not delete ban message: {delete_error}")
 
         except Exception as e:
             print(f"Error in ban process: {e}")
