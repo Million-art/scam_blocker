@@ -53,7 +53,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def do_GET(self):
-        config_path = Path(__file__).parent / "config.json"
+        config_path = Path(__file__).parent.parent / "config.json"
         config_status = "found" if config_path.exists() else "missing"
         writable = os.access(os.getcwd(), os.W_OK)
         
