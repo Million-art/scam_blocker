@@ -1,13 +1,37 @@
 import asyncio
 import json
+import os
 from http.server import BaseHTTPRequestHandler
+from pathlib import Path
 from bot.main import bot
 from telebot import types
 
+# Configure paths for production vs development
+def get_config_path():
+    """Determine the correct config path based on environment"""
+    if os.getenv('VERCEL'):
+        return Path('/tmp/config.json')  # Vercel uses /tmp for writable storage
+    elif os.getenv('DOCKER'):
+        return Path('/app/config.json')  # Docker convention
+    else:
+        return Path(__file__).parent.parent / 'config.json'  # Local development
+
+CONFIG_PATH = get_config_path()
+
 async def process_update(update_dict):
     try:
+        # Debug: Print received update
+        print(f"Received update: {json.dumps(update_dict, indent=2)}")
+        
         update = types.Update.de_json(update_dict)
         if update:
+            # Reload config fresh for each request in production
+            if os.getenv('PRODUCTION'):
+                with open(CONFIG_PATH, 'r') as f:
+                    config = json.load(f)
+                    bot.restricted_names = config.get('restricted_names', [])
+                    bot.admin_ids = config.get('admin_ids', [])
+            
             await bot.process_new_updates([update])
         return True
     except Exception as e:
@@ -30,6 +54,10 @@ class Handler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         try:
             update_dict = json.loads(post_data.decode('utf-8'))
+            
+            # Debug: Print config path being used
+            print(f"Using config from: {CONFIG_PATH}")
+            print(f"Config exists: {CONFIG_PATH.exists()}")
             
             # Run async function in sync context
             loop = asyncio.new_event_loop()
@@ -54,7 +82,10 @@ class Handler(BaseHTTPRequestHandler):
         self._set_headers(200)
         self.wfile.write(json.dumps({
             "status": "ready",
-            "service": "Telegram Bot Webhook"
+            "service": "Telegram Bot Webhook",
+            "config_path": str(CONFIG_PATH),
+            "config_exists": CONFIG_PATH.exists(),
+            "environment": "production" if os.getenv('PRODUCTION') else "development"
         }).encode())
 
 handler = Handler
