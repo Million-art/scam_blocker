@@ -1,10 +1,8 @@
 import asyncio
 import json
-import os
 from http.server import BaseHTTPRequestHandler
 from bot.main import bot
 from telebot import types
-from pathlib import Path
 
 async def process_update(update_dict):
     try:
@@ -53,19 +51,10 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def do_GET(self):
-        current_script_path = Path(__file__)
-        config_path = current_script_path.parent.parent / "config.json"
-        config_status = "found" if config_path.exists() else "missing"
-        writable = os.access(os.getcwd(), os.W_OK)
-        
         self._set_headers(200)
         self.wfile.write(json.dumps({
             "status": "ready",
-            "service": "Telegram Bot Webhook",
-            "config_path": str(config_path),
-            "config_status": config_status,
-            "environment": "production",
-            "writable": writable
+            "service": "Telegram Bot Webhook"
         }).encode())
 
 handler = Handler
