@@ -6,8 +6,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Construct the path to config.json relative to this file
-config_path = Path(__file__).parent / "config.json"
+# Construct the path to config.json relative to the current script
+current_script_path = Path(__file__)
+config_path = current_script_path.parent.parent / "config.json"
 logger.debug(f"Current working directory: {os.getcwd()}")
 logger.debug(f"Config path: {config_path}")
 
